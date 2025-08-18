@@ -7,14 +7,25 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/yanpavel/social_project/internal/store"
 )
 
 type application struct {
 	config config
+	store  store.Storage
 }
 
 type config struct {
 	addr string
+	db   dbConfig
+	env  string
+}
+
+type dbConfig struct {
+	addr         string
+	maxOpenConns int
+	maxIdleConns int
+	maxIdleTime  string
 }
 
 func (app *application) mount() http.Handler {
@@ -29,6 +40,18 @@ func (app *application) mount() http.Handler {
 
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
+
+		r.Route("/posts", func(r chi.Router) {
+			r.Post("/", app.createPostsHandler)
+
+			r.Route("/{postID}", func(r chi.Router) {
+				r.Use(app.postContextMiddleWare)
+				r.Get("/", app.getPostHandler)
+
+				r.Delete("/", app.deletePostHandler)
+				r.Patch("/", app.patchPostHandler)
+			})
+		})
 	})
 
 	return r
