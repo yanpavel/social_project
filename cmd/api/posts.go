@@ -92,7 +92,7 @@ func (app *application) patchPostHandler(w http.ResponseWriter, r *http.Request)
 		case errors.Is(err, store.ErrNotFound):
 			app.notFoundError(w, r, err)
 		default:
-			app.internalServerError(w, r, err)
+			app.internalServerError(w, r, err) 
 			return
 		}
 	}
