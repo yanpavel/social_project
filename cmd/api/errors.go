@@ -5,6 +5,11 @@ import (
 	"net/http"
 )
 
+func (app *application) conflictError(w http.ResponseWriter, r *http.Request, err error) {
+	log.Printf("conflict error: %s, path: %s, error: %s", r.Method, r.URL.Path, err.Error())
+	writeJSONError(w, http.StatusConflict, "server encountered a problem")
+}
+
 func (app *application) internalServerError(w http.ResponseWriter, r *http.Request, err error) {
 	log.Printf("internal server error: %s, path: %s, error: %s", r.Method, r.URL.Path, err.Error())
 	writeJSONError(w, http.StatusInternalServerError, "server encountered a problem")

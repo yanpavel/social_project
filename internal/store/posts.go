@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/lib/pq"
 )
@@ -20,8 +21,63 @@ type Post struct {
 	Comments  []Comment `json:"comments"`
 }
 
+type PostWithMetaData struct {
+	Post
+	User
+	CommentCount int `json:"comment_count"`
+}
+
 type PostStore struct {
 	db *sql.DB
+}
+
+func (s *PostStore) GetUserFeed(ctx context.Context, userId int64, fq PaginationFeedQuery) ([]PostWithMetaData, error) {
+	query := `
+	SELECT p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags, u.username,
+COUNT(c.id) AS comments_count
+FROM public.posts p
+LEFT JOIN public.comments c ON c.post_id=p.id
+LEFT JOIN public.users u ON p.user_id=u.id
+JOIN public.followers f ON ((f.user_id = p.user_id AND f.follower_id = $1) OR p.user_id = $1) 
+WHERE
+	(p.title ILIKE '%'||$2||'%' OR p.content ILIKE '%'||$2||'%') AND
+	(p.tags @> $3 OR $3 = '{}') AND 
+	(($4::timestamp IS NULL OR p.created_at > $4) AND ($5::timestamp IS NULL OR p.created_at < $5)) 
+GROUP BY p.id, u.username
+ORDER BY p.created_at ` + fq.Sort + `
+LIMIT $6 OFFSET $7;		
+	`
+
+	fmt.Print(query)
+	rows, err := s.db.QueryContext(ctx, query, userId, fq.Search, pq.Array(fq.Tags), fq.CreatedAtStart, fq.CreatedAtEnd, fq.Limit, fq.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var feed []PostWithMetaData
+	for rows.Next() {
+		var p PostWithMetaData
+		err := rows.Scan(
+			&p.Post.Id,
+			&p.Post.UserId,
+			&p.Post.Title,
+			&p.Post.Content,
+			&p.Post.CreatedAt,
+			&p.Post.Version,
+			pq.Array(&p.Post.Tags),
+			&p.User.UserName,
+			&p.CommentCount,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		feed = append(feed, p)
+	}
+
+	return feed, nil
+
 }
 
 func (s *PostStore) Create(ctx context.Context, post *Post) error {

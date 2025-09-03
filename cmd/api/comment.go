@@ -12,6 +12,20 @@ type CreateCommentPayload struct {
 	Content string `json:"content" validate:"required,max=100"`
 }
 
+// GetComments godoc
+//
+//	@Summary		Get comments
+//	@Description	Get comments
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Param			postID	path		int	true	"Post ID"
+//	@Success		200		{object}	store.Comment
+//	@Failure		400		{object}	error
+//	@Failure		401		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts/{id}/comment [get]
 func (app *application) getCommentByPostHandler(w http.ResponseWriter, r *http.Request) {
 	post := getPostFromCtx(r)
 	ctx := context.Background()
@@ -34,6 +48,21 @@ func (app *application) getCommentByPostHandler(w http.ResponseWriter, r *http.R
 	}
 }
 
+// CreateComment godoc
+//
+//	@Summary		Creates a comment
+//	@Description	Creates a comment
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Param			payload	body		CreateCommentPayload	true	"Comment payload"
+//	@Param			postID	path		int						true	"Post ID"
+//	@Success		201		{object}	store.Comment
+//	@Failure		400		{object}	error
+//	@Failure		401		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts/{id}/comment [post]
 func (app *application) postCommentHandler(w http.ResponseWriter, r *http.Request) {
 	var payload CreateCommentPayload
 	post := getPostFromCtx(r)

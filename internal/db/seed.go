@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"math/rand"
@@ -73,7 +72,7 @@ var comments = []string{
 	"Thanks for the information, very useful.",
 }
 
-func Seed(store store.Storage, db *sql.DB) {
+func Seed(store store.Storage) {
 	ctx := context.Background()
 
 	users := generateUsers(100)
