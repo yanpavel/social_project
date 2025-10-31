@@ -35,11 +35,10 @@ func (app *application) getCommentByPostHandler(w http.ResponseWriter, r *http.R
 		switch {
 		case errors.Is(err, store.ErrNotFound):
 			app.notFoundError(w, r, err)
-			return
 		default:
 			app.internalServerError(w, r, err)
-			return
 		}
+		return
 	}
 
 	if err := app.jsonResponse(w, http.StatusOK, comments); err != nil {

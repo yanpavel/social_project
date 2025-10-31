@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -53,11 +52,13 @@ func (app *application) createPostsHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	user := getUserFromContext(r)
+
 	post := &store.Post{
 		Title:   payload.Title,
 		Content: payload.Content,
 		Tags:    payload.Tags,
-		UserId:  1,
+		UserId:  user.Id,
 	}
 
 	ctx := r.Context()
@@ -103,8 +104,6 @@ func (app *application) patchPostHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Printf("payload: %v", payload)
-
 	if payload.Content != nil {
 		post.Content = *payload.Content
 	}
@@ -121,6 +120,7 @@ func (app *application) patchPostHandler(w http.ResponseWriter, r *http.Request)
 		switch {
 		case errors.Is(err, store.ErrNotFound):
 			app.notFoundError(w, r, err)
+			return
 		default:
 			app.internalServerError(w, r, err)
 			return
@@ -192,8 +192,8 @@ func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request
 			app.notFoundError(w, r, err)
 		default:
 			app.internalServerError(w, r, err)
-			return
 		}
+		return
 	}
 
 	if err := app.jsonResponse(w, http.StatusNoContent, nil); err != nil {

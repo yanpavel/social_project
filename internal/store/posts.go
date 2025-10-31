@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/lib/pq"
 )
@@ -47,8 +46,6 @@ GROUP BY p.id, u.username
 ORDER BY p.created_at ` + fq.Sort + `
 LIMIT $6 OFFSET $7;		
 	`
-
-	fmt.Print(query)
 	rows, err := s.db.QueryContext(ctx, query, userId, fq.Search, pq.Array(fq.Tags), fq.CreatedAtStart, fq.CreatedAtEnd, fq.Limit, fq.Offset)
 	if err != nil {
 		return nil, err

@@ -10,6 +10,8 @@ import (
 var (
 	ErrNotFound          = errors.New("resource not found")
 	ErrConflict          = errors.New("resource already exists")
+	ErrDuplicateEmail    = errors.New("email already exists")
+	ErrDuplicateUsername = errors.New("username already exists")
 	QueryTimeOutDuration = time.Second * 5
 )
 
@@ -22,8 +24,13 @@ type Storage struct {
 		GetUserFeed(context.Context, int64, PaginationFeedQuery) ([]PostWithMetaData, error)
 	}
 	Users interface {
-		Create(context.Context, *User) error
+		Create(context.Context, *User, *sql.Tx) error
 		GetUserById(context.Context, int64) (*User, error)
+		CreateAndInvite(context.Context, *User, string, time.Duration) error
+		CreateUserInvitation(context.Context, *sql.Tx, string, time.Duration, int64) error
+		Activate(context.Context, string) error
+		Delete(context.Context, int64) error
+		GetByEmail(context.Context, string) (*User, error)
 	}
 	Comments interface {
 		GetByPostID(context.Context, int64) (*[]Comment, error)
@@ -33,6 +40,9 @@ type Storage struct {
 		FollowUser(context.Context, int64, int64) error
 		UnfollowUser(context.Context, int64, int64) error
 	}
+	Roles interface {
+		GetByName(context.Context, string) (*Role, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -41,5 +51,20 @@ func NewStorage(db *sql.DB) Storage {
 		Users:     &UserStore{db},
 		Comments:  &CommentsStore{db},
 		Followers: &FollowersStore{db},
+		Roles:     &RoleStore{db},
 	}
+}
+
+func withTx(db *sql.DB, ctx context.Context, fn func(*sql.Tx) error) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := fn(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
