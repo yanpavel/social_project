@@ -27,9 +27,6 @@ func (s *CommentsStore) CreateComment(ctx context.Context, comment *Comment) (*i
 	RETURNING id, created_at
 	`
 
-	ctx, cancel := context.WithTimeout(ctx, QueryTimeOutDuration)
-	defer cancel()
-
 	err := s.db.QueryRowContext(
 		ctx,
 		query,
@@ -57,9 +54,6 @@ func (s *CommentsStore) GetByPostID(ctx context.Context, postID int64) (*[]Comme
 	ORDER BY c.created_at DESC
 	`
 
-	ctx, cancel := context.WithTimeout(ctx, QueryTimeOutDuration)
-	defer cancel()
-
 	rows, err := s.db.QueryContext(ctx, query, postID)
 	if err != nil {
 		return nil, err
@@ -83,4 +77,72 @@ func (s *CommentsStore) GetByPostID(ctx context.Context, postID int64) (*[]Comme
 	}
 
 	return &comments, nil
+}
+
+func (s *CommentsStore) GetCommentById(ctx context.Context, id int64) (*Comment, error) {
+	query := `
+	SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, u.username, u.id 
+	FROM comments c
+	JOIN users u on u.id = c.user_id
+	WHERE c.id=$1
+	ORDER BY c.created_at DESC
+	`
+
+	var comment Comment
+	err := s.db.QueryRowContext(ctx, query, id).Scan(
+		&comment.ID,
+		&comment.PostID,
+		&comment.UserID,
+		&comment.Content,
+		&comment.CreatedAt,
+		&comment.User.UserName,
+		&comment.User.Id,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &comment, nil
+}
+
+func (s *CommentsStore) DeleteCommentById(ctx context.Context, id int64) error {
+	query := `
+	DELETE FROM comments WHERE id=$1
+	`
+
+	row := s.db.QueryRowContext(ctx, query)
+	if err := row.Err(); err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrNotFound
+		default:
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *CommentsStore) UpdateCommentById(ctx context.Context, comment *Comment) error {
+	query := `
+	UPDATE comments SET content=$1 WHERE c.id=$2
+	`
+
+	row := s.db.QueryRowContext(ctx, query, comment.Content, comment.ID)
+	if err := row.Err(); err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrNotFound
+		default:
+			return err
+		}
+	}
+
+	return nil
 }

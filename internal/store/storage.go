@@ -12,7 +12,6 @@ var (
 	ErrConflict          = errors.New("resource already exists")
 	ErrDuplicateEmail    = errors.New("email already exists")
 	ErrDuplicateUsername = errors.New("username already exists")
-	QueryTimeOutDuration = time.Second * 5
 )
 
 type Storage struct {
@@ -35,6 +34,9 @@ type Storage struct {
 	Comments interface {
 		GetByPostID(context.Context, int64) (*[]Comment, error)
 		CreateComment(context.Context, *Comment) (*int64, error)
+		GetCommentById(context.Context, int64) (*Comment, error)
+		DeleteCommentById(context.Context, int64) error
+		UpdateCommentById(context.Context, *Comment) error
 	}
 	Followers interface {
 		FollowUser(context.Context, int64, int64) error

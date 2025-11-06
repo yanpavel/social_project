@@ -23,9 +23,6 @@ func (s *FollowersStore) FollowUser(ctx context.Context, followedId int64, follo
 	VALUES ($1, $2)
 	`
 
-	ctx, cancel := context.WithTimeout(ctx, QueryTimeOutDuration)
-	defer cancel()
-
 	_, err := s.db.ExecContext(
 		ctx,
 		query,
@@ -48,9 +45,6 @@ func (s *FollowersStore) UnfollowUser(ctx context.Context, followedId int64, fol
 	DELETE FROM followers
 	WHERE user_id=$1 AND follower_id=$2
 	`
-
-	ctx, cancel := context.WithTimeout(ctx, QueryTimeOutDuration)
-	defer cancel()
 
 	result, err := s.db.ExecContext(
 		ctx,

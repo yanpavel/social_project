@@ -34,9 +34,9 @@ type UserWithToken struct {
 //	@Produce		json
 //	@Param			payload	body		RegisterUserPayload	true	"Post payload"
 //	@Success		201		{object}	UserWithToken
-//	@Failure		400		{object}	error
-//	@Failure		401		{object}	error
-//	@Failure		500		{object}	error
+//	@Failure		400		{object}	app.badRequestError
+//	@Failure		401		{object}	app.unauthorizedErrorResponse
+//	@Failure		500		{object}	app.internalServerError
 //	@Security		ApiKeyAuth
 //	@Router			/authentication/user/ [post]
 func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +51,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*8)
+	ctx, cancel := context.WithTimeout(r.Context(), QueryTimeOutDuration)
 	defer cancel()
 
 	user := &store.User{
@@ -133,9 +133,9 @@ type CreateUserTokenPayload struct {
 //	@Produce		json
 //	@Param			payload	body		CreateUserTokenPayload	true	"User credentials"
 //	@Success		200		{string}	string					"Token"
-//	@Failure		400		{object}	error
-//	@Failure		401		{object}	error
-//	@Failure		500		{object}	error
+//	@Failure		400		{object}	app.badRequestError
+//	@Failure		401		{object}	app.unauthorizedErrorResponse
+//	@Failure		500		{object}	app.internalServerError
 //	@Router			/authentication/token/ [post]
 func (app *application) createTokenHandler(w http.ResponseWriter, r *http.Request) {
 	var payload CreateUserTokenPayload
@@ -149,7 +149,7 @@ func (app *application) createTokenHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*8)
+	ctx, cancel := context.WithTimeout(r.Context(), QueryTimeOutDuration)
 	defer cancel()
 
 	user, err := app.store.Users.GetByEmail(ctx, payload.Email)

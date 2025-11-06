@@ -24,6 +24,8 @@ import (
 	"github.com/yanpavel/social_project/internal/store/cache"
 )
 
+const QueryTimeOutDuration = time.Second * 5
+
 type application struct {
 	config           config
 	store            store.Storage
@@ -128,8 +130,16 @@ func (app *application) mount() http.Handler {
 				r.Delete("/", app.checkPostOwnership("admin", app.deletePostHandler))
 				r.Patch("/", app.checkPostOwnership("moderator", app.patchPostHandler))
 
-				r.Post("/comment", app.postCommentHandler)
-				r.Get("/comment", app.getCommentByPostHandler)
+				r.Route("/comment", func(r chi.Router) {
+					r.Post("/", app.postCommentHandler)
+					r.Get("/", app.getCommentByPostHandler)
+					r.Route("/{commentID}", func(r chi.Router) {
+						r.Use(app.commentContextMiddleWare)
+
+						r.Delete("/", app.checkCommentOwnership("admin", app.deleteCommentByIdHandler))
+						r.Put("/", app.checkCommentOwnership("moderator", app.updateCommentHandler))
+					})
+				})
 			})
 		})
 

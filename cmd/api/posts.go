@@ -35,9 +35,9 @@ type PatchPostPayload struct {
 //	@Produce		json
 //	@Param			payload	body		CreatePostPayload	true	"Post payload"
 //	@Success		201		{object}	store.Post
-//	@Failure		400		{object}	error
-//	@Failure		401		{object}	error
-//	@Failure		500		{object}	error
+//	@Failure		400		{object}	app.badRequestError
+//	@Failure		401		{object}	app.unauthorizedErrorResponse
+//	@Failure		500		{object}	app.internalServerError
 //	@Security		ApiKeyAuth
 //	@Router			/posts [post]
 func (app *application) createPostsHandler(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +61,8 @@ func (app *application) createPostsHandler(w http.ResponseWriter, r *http.Reques
 		UserId:  user.Id,
 	}
 
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), QueryTimeOutDuration)
+	defer cancel()
 
 	if err := app.store.Posts.Create(ctx, post); err != nil {
 		app.internalServerError(w, r, err)
@@ -84,10 +85,10 @@ func (app *application) createPostsHandler(w http.ResponseWriter, r *http.Reques
 //	@Param			id		path		int					true	"Post ID"
 //	@Param			payload	body		PatchPostPayload	true	"Post payload"
 //	@Success		200		{object}	store.Post
-//	@Failure		400		{object}	error
-//	@Failure		401		{object}	error
-//	@Failure		404		{object}	error
-//	@Failure		500		{object}	error
+//	@Failure		400		{object}	app.badRequestError
+//	@Failure		401		{object}	app.unauthorizedErrorResponse
+//	@Failure		404		{object}	app.notFoundError
+//	@Failure		500		{object}	app.internalServerError
 //	@Security		ApiKeyAuth
 //	@Router			/posts/{id} [patch]
 func (app *application) patchPostHandler(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +115,8 @@ func (app *application) patchPostHandler(w http.ResponseWriter, r *http.Request)
 		post.Tags = *payload.Tags
 	}
 
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), QueryTimeOutDuration)
+	defer cancel()
 
 	if err := app.store.Posts.UpdatePost(ctx, post, post.Id); err != nil {
 		switch {
@@ -142,14 +144,17 @@ func (app *application) patchPostHandler(w http.ResponseWriter, r *http.Request)
 //	@Produce		json
 //	@Param			id	path		int	true	"Post ID"
 //	@Success		200	{object}	store.Post
-//	@Failure		404	{object}	error
-//	@Failure		500	{object}	error
+//	@Failure		404		{object}	app.notFoundError
+//	@Failure		500		{object}	app.internalServerError
 //	@Security		ApiKeyAuth
 //	@Router			/posts/{id} [get]
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	post := getPostFromCtx(r)
 
-	comments, err := app.store.Comments.GetByPostID(r.Context(), post.Id)
+	ctx, cancel := context.WithTimeout(r.Context(), QueryTimeOutDuration)
+	defer cancel()
+
+	comments, err := app.store.Comments.GetByPostID(ctx, post.Id)
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
@@ -171,9 +176,9 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		int	true	"Post ID"
-//	@Success		204	{object}	string
-//	@Failure		404	{object}	error
-//	@Failure		500	{object}	error
+//	@Success		204
+//	@Failure		404		{object}	app.notFoundError
+//	@Failure		500		{object}	app.internalServerError
 //	@Security		ApiKeyAuth
 //	@Router			/posts/{id} [delete]
 func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
@@ -184,7 +189,8 @@ func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), QueryTimeOutDuration)
+	defer cancel()
 
 	if err := app.store.Posts.DeletePost(ctx, id); err != nil {
 		switch {
@@ -211,7 +217,8 @@ func (app *application) postContextMiddleWare(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := r.Context()
+		ctx, cancel := context.WithTimeout(r.Context(), QueryTimeOutDuration)
+		defer cancel()
 
 		post, err := app.store.Posts.GetPostById(ctx, id)
 		if err != nil {

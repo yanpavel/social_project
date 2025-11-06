@@ -112,7 +112,7 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), QueryTimeOutDuration)
 	defer cancel()
 
 	if err := app.store.Followers.FollowUser(ctx, followedId, followerUser.Id); err != nil {
@@ -154,7 +154,7 @@ func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), QueryTimeOutDuration)
 	defer cancel()
 
 	if err := app.store.Followers.UnfollowUser(ctx, unfollowedId, unfollowerUser.Id); err != nil {
